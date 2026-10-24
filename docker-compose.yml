@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: saigonbite
+      POSTGRES_PASSWORD: saigonbite
+      POSTGRES_DB: saigonbite
+    ports:
+      - "5432:5432"
+    volumes:
+      - saigonbite_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saigonbite -d saigonbite"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  saigonbite_db:

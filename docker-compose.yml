@@ -1,7 +1,7 @@
+# Development set-up. The passwords below are for local use only: never reuse them in production.
 services:
   db:
-    image: postgres:16-alpine
-    restart: unless-stopped
+    image: postgres:16
     environment:
       POSTGRES_USER: saigonbite
       POSTGRES_PASSWORD: saigonbite
@@ -9,12 +9,23 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - saigonbite_db:/var/lib/postgresql/data
+      - dbdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U saigonbite -d saigonbite"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      test: ["CMD-SHELL", "pg_isready -U saigonbite"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://saigonbite:saigonbite@db:5432/saigonbite
+      SECRET_KEY: change-me-in-real-use
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
-  saigonbite_db:
+  dbdata:

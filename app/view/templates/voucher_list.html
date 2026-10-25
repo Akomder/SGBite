@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Vouchers</h1>
+<form method="get" class="card row" style="align-items:end">
+  <div><label for="q">Search code or description</label><input type="text" id="q" name="q" value="{{ q }}"></div>
+  <div><label for="state">State</label><select id="state" name="state"><option value="">All</option>{% for s in states %}<option {{ 'selected' if s == state }}>{{ s }}</option>{% endfor %}</select></div>
+  <div><button type="submit">Search</button> <a class="btn" href="{{ url_for('vouchers.create_voucher') }}">New voucher</a></div>
+</form>
+<table>
+  <tr><th>Code</th><th>Discount</th><th>Valid</th><th>Min order</th><th>Used</th><th>State</th><th></th></tr>
+  {% for v, state in rows %}
+  <tr><td><b>{{ v.code }}</b><br><span class="muted">{{ v.description }}</span></td>
+    <td>{% if v.discount_type == 'percent' %}{{ v.value }}%{% else %}{{ v.value|vnd }}{% endif %}</td>
+    <td>{{ v.valid_from.strftime('%Y-%m-%d') }} to {{ v.valid_to.strftime('%Y-%m-%d') }}</td>
+    <td>{{ v.min_order|vnd }}</td><td>{{ v.used_count }}{% if v.usage_limit %} / {{ v.usage_limit }}{% endif %}</td>
+    <td><span class="badge {{ 'quiet' if state == 'Active' else 'normal' }}">{{ state }}</span></td>
+    <td>{% if state != 'Expired' %}<a href="{{ url_for('vouchers.edit_voucher', voucher_id=v.id) }}">Edit</a>{% endif %}
+      {% if v.active %}<form class="inline" method="post" action="{{ url_for('vouchers.deactivate', voucher_id=v.id) }}"><button class="danger" type="submit">Deactivate</button></form>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="7">No vouchers found.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

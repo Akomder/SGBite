@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Kitchen: {{ status.hub.name }}</h1>
+<div class="card">
+  <b>Hub load:</b> {{ status.active_orders }} / {{ status.hub.capacity }} ({{ (status.ratio*100)|round|int }}%)
+  <span class="badge {{ status.state }}">{{ status.state|capitalize }}</span>
+  <div class="bar"><span style="width:{{ [status.ratio*100, 100]|min|round|int }}%"></span></div>
+  {% if status.state == 'full' %}<p class="muted">The hub is full: customers cannot place new orders until the load drops.</p>{% endif %}
+</div>
+<h2>Incoming orders ({{ incoming|length }})</h2>
+{% if not incoming %}<p class="muted">No new orders.</p>{% endif %}
+{% for o in incoming %}
+<div class="card">
+  <b>{{ o.number }}</b> &middot; {{ o.created_at.strftime('%H:%M') }} &middot; {{ o.total|vnd }} &middot; {{ o.payment_method }} ({{ o.payment_status }})
+  <ul>{% for i in o.items %}<li>{{ i.quantity }} x {{ i.menu_item.name_en }}</li>{% endfor %}</ul>
+  <p class="muted">Deliver to: {{ o.delivery_address }} ({{ o.distance_km }} km) &middot; {{ o.customer.full_name }}{% if o.customer.phone %}, {{ o.customer.phone }}{% endif %}</p>
+  <form class="inline" method="post" action="{{ url_for('kitchen.confirm', order_id=o.id) }}"><button class="ok" type="submit">Confirm</button></form>
+  <form class="inline" method="post" action="{{ url_for('kitchen.reject', order_id=o.id) }}">
+    <input type="text" name="reason" placeholder="Reason (required), e.g. item out of stock" style="width:18rem" required minlength="3">
+    <button class="danger" type="submit">Reject</button></form>
+</div>
+{% endfor %}
+<h2>In progress ({{ in_progress|length }})</h2>
+<p class="muted">Supporting step, outside our four use cases: move orders along so that load and reports stay realistic.</p>
+<table>
+  <tr><th>Order</th><th>Status</th><th>Total</th><th>Next step</th></tr>
+  {% for o in in_progress %}<tr><td>{{ o.number }}</td><td>{{ o.status }}</td><td>{{ o.total|vnd }}</td><td>
+    {% for step in o.next_steps() %}<form class="inline" method="post" action="{{ url_for('kitchen.advance', order_id=o.id) }}"><input type="hidden" name="status" value="{{ step }}"><button class="sec" type="submit">{{ step }}</button></form> {% endfor %}</td></tr>{% endfor %}
+</table>
+{% endblock %}

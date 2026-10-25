@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ report.title }}</h1>
+<div class="card"><table style="margin:0">{% for label, value in report.summary %}<tr><td>{{ label }}</td><td><b>{{ value }}</b></td></tr>{% endfor %}</table></div>
+{% for title, headers, rows in report.tables %}
+<h2>{{ title }}</h2>
+<table>
+  <tr>{% for h in headers %}<th>{{ h }}</th>{% endfor %}</tr>
+  {% for r in rows %}<tr>{% for c in r %}<td>{{ c }}</td>{% endfor %}</tr>{% else %}<tr><td colspan="{{ headers|length }}">No data for this period.</td></tr>{% endfor %}
+</table>
+{% endfor %}
+<a class="btn" href="{{ url_for('reports.show', kind=kind, format='csv', date_from=f.date_from, date_to=f.date_to, hub_id=f.hub_id or '', brand_id=f.brand_id or '') }}">Download CSV</a>
+<a class="btn sec" href="{{ url_for('reports.index') }}">Back to filters</a>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ t('order') }} {{ order.number }}</h1>
+<div class="row">
+  <div class="card"><b>{{ t('status') }}:</b> {{ status_label(order.status) }}<br>
+    <b>{{ t('hub') }}:</b> {{ order.hub.name }}<br><b>{{ t('address') }}:</b> {{ order.delivery_address }}<br>
+    <b>{{ t('payment') }}:</b> {{ t('pay_' ~ order.payment_method) }} ({{ t('payment_status') }}: {{ order.payment_status }})
+    {% if order.reject_reason %}<br><b>Reason:</b> {{ order.reject_reason }}{% endif %}</div>
+  <div class="card"><b>{{ t('notifications') }}</b><ul>{% for n in notes %}<li>{{ n.message }}</li>{% endfor %}</ul></div>
+</div>
+<table>
+  <tr><th>{{ t('items') }}</th><th>{{ t('qty') }}</th><th class="right">{{ t('price') }}</th></tr>
+  {% for i in order.items %}<tr><td>{{ i.menu_item.name(lang) }}</td><td>{{ i.quantity }}</td><td class="right">{{ i.line_total|vnd }}</td></tr>{% endfor %}
+  <tr><td colspan="2">{{ t('delivery_fee') }}</td><td class="right">{{ order.delivery_fee|vnd }}</td></tr>
+  {% if order.rain_surcharge %}<tr><td colspan="2">{{ t('rain_surcharge') }}</td><td class="right">{{ order.rain_surcharge|vnd }}</td></tr>{% endif %}
+  {% if order.quiet_discount %}<tr><td colspan="2">{{ t('quiet_discount') }}</td><td class="right">- {{ order.quiet_discount|vnd }}</td></tr>{% endif %}
+  {% if order.voucher_discount %}<tr><td colspan="2">{{ t('voucher_discount') }}</td><td class="right">- {{ order.voucher_discount|vnd }}</td></tr>{% endif %}
+  <tr class="total"><td colspan="2">{{ t('total') }}</td><td class="right">{{ order.total|vnd }}</td></tr>
+</table>
+{% if order.status in ('Placed', 'Confirmed') %}
+<form method="post" action="{{ url_for('ordering.cancel', order_id=order.id) }}"><button class="danger" type="submit">{{ t('cancel_order') }}</button></form>
+{% endif %}
+{% endblock %}

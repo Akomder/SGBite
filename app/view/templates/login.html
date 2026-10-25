@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ t('login') }}</h1>
+<form method="post" class="card" style="max-width:420px">
+  <label for="username">{{ t('username') }}</label><input type="text" id="username" name="username" required autofocus>
+  <label for="password">{{ t('password') }}</label><input type="password" id="password" name="password" required>
+  <p><button type="submit">{{ t('login') }}</button></p>
+  <p class="muted">Demo accounts (password: <b>password</b>): an (local customer), tourist, kitchen1, kitchen2, admin, manager.</p>
+</form>
+{% endblock %}

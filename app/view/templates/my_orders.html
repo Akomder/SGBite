@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ t('nav_my_orders') }}</h1>
+{% if not orders %}<p>{{ t('no_orders') }}</p>{% else %}
+<table>
+  <tr><th>{{ t('order') }}</th><th>{{ t('hub') }}</th><th>{{ t('status') }}</th><th>{{ t('total') }}</th><th>{{ t('placed_at') }}</th><th></th></tr>
+  {% for o in orders %}<tr><td>{{ o.number }}</td><td>{{ o.hub.name }}</td><td>{{ status_label(o.status) }}</td><td>{{ o.total|vnd }}</td>
+    <td>{{ o.created_at.strftime('%Y-%m-%d %H:%M') }}</td><td><a href="{{ url_for('ordering.order_detail', order_id=o.id) }}">{{ t('view') }}</a></td></tr>{% endfor %}
+</table>{% endif %}
+{% endblock %}

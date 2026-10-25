@@ -1,36 +1,49 @@
-"""SQLAlchemy engine and session setup."""
-from collections.abc import Iterator
-from contextlib import contextmanager
+"""Database set-up. Layer: DATA ACCESS."""
+from __future__ import annotations
 
-from flask import Flask
+import time
+
+from flask import current_app
 from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from ..domain.models import Base
 
 
-class Base(DeclarativeBase):
-    pass
+class Database:
+    def __init__(self, url: str):
+        kwargs = {}
+        if url.startswith("sqlite") and (url in ("sqlite://", "sqlite:///:memory:")):
+            kwargs = {"poolclass": StaticPool, "connect_args": {"check_same_thread": False}}
+        self.engine = create_engine(url, future=True, **kwargs)
+        self.session = scoped_session(sessionmaker(bind=self.engine, expire_on_commit=False))
+
+    def create_tables(self, retries: int = 30) -> None:
+        for attempt in range(retries):
+            try:
+                Base.metadata.create_all(self.engine)
+                return
+            except OperationalError:
+                if attempt == retries - 1:
+                    raise
+                time.sleep(1)  # database container may still be starting
+
+    def drop_tables(self) -> None:
+        Base.metadata.drop_all(self.engine)
 
 
-def init_database(app: Flask) -> None:
-    # Import model declarations before create_all registers the mapped tables.
-    from app.data import models  # noqa: F401
+def init_app(app) -> Database:
+    db = Database(app.config["DATABASE_URL"])
+    app.extensions["db"] = db
 
-    url = app.config["DATABASE_URL"]
-    options = {"check_same_thread": False} if url.startswith("sqlite") else {}
-    engine = create_engine(url, connect_args=options, pool_pre_ping=True)
-    app.extensions["saigonbite_engine"] = engine
-    app.extensions["saigonbite_session_factory"] = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-    Base.metadata.create_all(engine)
+    @app.teardown_appcontext
+    def _remove_session(_exc):
+        db.session.remove()
+
+    return db
 
 
-@contextmanager
-def session_scope(app: Flask) -> Iterator[Session]:
-    session = app.extensions["saigonbite_session_factory"]()
-    try:
-        yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+def get_session():
+    return current_app.extensions["db"].session

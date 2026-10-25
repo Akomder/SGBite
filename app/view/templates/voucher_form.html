@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+{% set f = form if form else {} %}
+<h1>{{ 'Edit voucher ' ~ voucher.code if voucher else 'New voucher' }}</h1>
+<form method="post" class="card" style="max-width:560px">
+  {% if not voucher %}<label for="code">Code (3 to 20 letters or digits)</label><input type="text" id="code" name="code" value="{{ f.get('code', '') }}" required>{% endif %}
+  <label for="description">Description</label><input type="text" id="description" name="description" value="{{ f.get('description', voucher.description if voucher else '') }}">
+  {% set dtype = f.get('discount_type', voucher.discount_type if voucher else 'percent') %}
+  <label for="discount_type">Discount type</label><select id="discount_type" name="discount_type"><option value="percent" {{ 'selected' if dtype == 'percent' }}>Percent</option><option value="fixed" {{ 'selected' if dtype == 'fixed' }}>Fixed amount (VND)</option></select>
+  <label for="value">Value</label><input type="number" id="value" name="value" min="1" value="{{ f.get('value', voucher.value if voucher else '') }}" required>
+  <label for="valid_from">Valid from</label><input type="date" id="valid_from" name="valid_from" value="{{ f.get('valid_from', voucher.valid_from.strftime('%Y-%m-%d') if voucher else '') }}" required>
+  <label for="valid_to">Valid to</label><input type="date" id="valid_to" name="valid_to" value="{{ f.get('valid_to', voucher.valid_to.strftime('%Y-%m-%d') if voucher else '') }}" required>
+  <label for="min_order">Minimum order (VND)</label><input type="number" id="min_order" name="min_order" min="0" value="{{ f.get('min_order', voucher.min_order if voucher else 0) }}">
+  <label for="usage_limit">Total usage limit (empty = unlimited)</label><input type="number" id="usage_limit" name="usage_limit" min="1" value="{{ f.get('usage_limit', voucher.usage_limit if voucher and voucher.usage_limit else '') }}">
+  <label><input type="checkbox" name="once_per_customer" value="1" {{ 'checked' if (f.get('once_per_customer') if form else (voucher.once_per_customer if voucher else True)) }}> One use per customer</label>
+  <p><button type="submit">Save</button> <a class="btn sec" href="{{ url_for('vouchers.list_vouchers') }}">Cancel</a></p>
+</form>
+{% endblock %}

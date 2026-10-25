@@ -1,43 +1,63 @@
-"""HTTP endpoints for voucher maintenance and reporting."""
-from decimal import Decimal, InvalidOperation
+"""UC3 Manage vouchers. Layer: CONTROLLER (owner 523K0076)."""
+from __future__ import annotations
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 
-from app.data.database import session_scope
-from app.data.models import Voucher
-from app.data.repositories import OrderRepository, VoucherRepository
-from app.domain.vouchers import validate_voucher
+from ..data.database import get_session
+from ..domain.errors import DomainError
+from ..domain.vouchers import STATES, VoucherService
+from .auth import role_required
 
-vouchers_bp = Blueprint("vouchers", __name__, url_prefix="/vouchers")
-reports_bp = Blueprint("reports", __name__, url_prefix="/reports")
+bp = Blueprint("vouchers", __name__, url_prefix="/admin/vouchers")
 
 
-@vouchers_bp.get("")
+def _service():
+    return VoucherService(get_session())
+
+
+@bp.get("")
+@role_required("admin")
 def list_vouchers():
-    with session_scope(current_app) as session:
-        rows = VoucherRepository(session).list_all()
-        return jsonify([{"id": v.id, "code": v.code, "discount_percent": str(v.discount_percent), "active": v.active} for v in rows])
+    text, state = request.args.get("q", ""), request.args.get("state", "")
+    return render_template("voucher_list.html", rows=_service().list(text, state), q=text, state=state, states=STATES)
 
 
-@vouchers_bp.post("")
+@bp.route("/new", methods=["GET", "POST"])
+@role_required("admin")
 def create_voucher():
-    payload = request.get_json(silent=True) or {}
+    if request.method == "POST":
+        try:
+            _service().create(request.form)
+            flash("Voucher created.", "ok")
+            return redirect(url_for("vouchers.list_vouchers"))
+        except DomainError as e:
+            flash(str(e), "error")
+    return render_template("voucher_form.html", voucher=None, form=request.form)
+
+
+@bp.route("/<int:voucher_id>/edit", methods=["GET", "POST"])
+@role_required("admin")
+def edit_voucher(voucher_id):
+    svc = _service()
     try:
-        code = str(payload.get("code", ""))
-        discount = Decimal(str(payload.get("discount_percent", "0")))
-        validate_voucher(code, discount)
-        with session_scope(current_app) as session:
-            voucher = Voucher(code=code.strip().upper(), description=str(payload.get("description", "")), discount_percent=discount)
-            session.add(voucher)
-            session.flush()
-            result = {"id": voucher.id, "code": voucher.code, "discount_percent": str(voucher.discount_percent)}
-        return jsonify(result), 201
-    except (ValueError, InvalidOperation) as error:
-        return jsonify({"error": str(error)}), 400
+        voucher = svc.get(voucher_id)
+        if request.method == "POST":
+            svc.update(voucher_id, request.form)
+            flash("Voucher updated.", "ok")
+            return redirect(url_for("vouchers.list_vouchers"))
+    except DomainError as e:
+        flash(str(e), "error")
+        if request.method == "GET":
+            return redirect(url_for("vouchers.list_vouchers"))
+    return render_template("voucher_form.html", voucher=voucher, form=request.form if request.method == "POST" else None)
 
 
-@reports_bp.get("/summary")
-def summary():
-    with session_scope(current_app) as session:
-        count = OrderRepository(session).count_orders()
-    return jsonify({"order_count": count})
+@bp.post("/<int:voucher_id>/deactivate")
+@role_required("admin")
+def deactivate(voucher_id):
+    try:
+        _service().deactivate(voucher_id)
+        flash("Voucher deactivated. Past orders keep it.", "ok")
+    except DomainError as e:
+        flash(str(e), "error")
+    return redirect(url_for("vouchers.list_vouchers"))

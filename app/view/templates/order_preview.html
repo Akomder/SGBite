@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ t('full_price') }}: {{ hub.name }}</h1>
+{% if q.suggestions %}<div class="card"><b>{{ t('busy_warning') }}</b><ul>{% for s in q.suggestions %}<li>{{ s.hub.name }} ({{ t('state_' ~ s.state) }})</li>{% endfor %}</ul></div>{% endif %}
+<table>
+  <tr><th>{{ t('menu') }}</th><th>{{ t('qty') }}</th><th class="right">{{ t('price') }}</th></tr>
+  {% for item, qty, line in q.lines %}<tr><td>{{ item.name(lang) }}</td><td>{{ qty }}</td><td class="right">{{ line|vnd }}</td></tr>{% endfor %}
+</table>
+<table>
+  <tr><td>{{ t('items_subtotal') }}</td><td class="right">{{ q.breakdown.items_subtotal|vnd }}</td></tr>
+  <tr><td>{{ t('delivery_fee') }} ({{ q.distance_km }} km)</td><td class="right">{{ q.breakdown.delivery_fee|vnd }}</td></tr>
+  {% if q.breakdown.rain_surcharge %}<tr><td>{{ t('rain_surcharge') }}</td><td class="right">{{ q.breakdown.rain_surcharge|vnd }}</td></tr>{% endif %}
+  {% if q.breakdown.quiet_discount %}<tr><td>{{ t('quiet_discount') }}</td><td class="right">- {{ q.breakdown.quiet_discount|vnd }}</td></tr>{% endif %}
+  {% if q.voucher %}<tr><td>{{ t('voucher_discount') }} ({{ q.voucher.code }})</td><td class="right">- {{ q.breakdown.voucher_discount|vnd }}</td></tr>{% endif %}
+  <tr class="total"><td>{{ t('total') }}</td><td class="right">{{ q.breakdown.total|vnd }}</td></tr>
+</table>
+<p class="muted">{{ t('payment') }}: {{ t('pay_' ~ q.payment_method) }} &middot; {{ q.address }}</p>
+<form method="post" action="{{ url_for('ordering.place', hub_id=hub.id) }}" class="inline">
+  {% for id, qty in form.qty.items() %}<input type="hidden" name="qty_{{ id }}" value="{{ qty }}">{% endfor %}
+  <input type="hidden" name="address" value="{{ form.address }}"><input type="hidden" name="distance_km" value="{{ form.distance_km }}">
+  <input type="hidden" name="voucher" value="{{ form.voucher }}"><input type="hidden" name="payment" value="{{ form.payment }}">
+  <button type="submit" class="ok">{{ t('confirm_order') }}</button>
+</form>
+<a class="btn sec" href="{{ url_for('ordering.order_form', hub_id=hub.id) }}">{{ t('back') }}</a>
+{% endblock %}

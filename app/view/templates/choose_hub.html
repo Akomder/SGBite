@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ t('choose_hub') }}</h1>
+<table>
+  <tr><th>{{ t('hub') }}</th><th>{{ t('load') }}</th><th></th></tr>
+  {% for s in statuses %}
+  <tr>
+    <td><b>{{ s.hub.name }}</b><br><span class="muted">{{ s.hub.address }}</span></td>
+    <td style="width:36%"><div class="bar"><span style="width:{{ [s.ratio*100, 100]|min|round|int }}%"></span></div>
+      <span class="badge {{ s.state }}">{{ t('state_' ~ s.state) }}</span> {{ s.active_orders }} / {{ s.hub.capacity }}</td>
+    <td class="right">{% if s.state == 'full' %}<span class="btn disabled">{{ t('order_here') }}</span>{% else %}<a class="btn" href="{{ url_for('ordering.order_form', hub_id=s.hub.id) }}">{{ t('order_here') }}</a>{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

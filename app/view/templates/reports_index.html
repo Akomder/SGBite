@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Management reports</h1>
+<form method="get" class="card" id="filter">
+  <div class="row">
+    <div><label for="date_from">From</label><input type="date" id="date_from" name="date_from"></div>
+    <div><label for="date_to">To</label><input type="date" id="date_to" name="date_to"></div>
+    <div><label for="hub_id">Hub</label><select id="hub_id" name="hub_id"><option value="">All hubs</option>{% for h in hubs %}<option value="{{ h.id }}">{{ h.name }}</option>{% endfor %}</select></div>
+    <div><label for="brand_id">Brand (sales only)</label><select id="brand_id" name="brand_id"><option value="">All brands</option>{% for b in brands %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}</select></div>
+  </div>
+  <p class="muted">Leave the dates empty for the last 30 days.</p>
+  <p>
+    <button type="submit" formaction="{{ url_for('reports.show', kind='sales') }}">Sales report</button>
+    <button type="submit" formaction="{{ url_for('reports.show', kind='workload') }}">Hub workload report</button>
+    <button type="submit" formaction="{{ url_for('reports.show', kind='delivery') }}">Delivery performance report</button>
+  </p>
+</form>
+{% endblock %}
